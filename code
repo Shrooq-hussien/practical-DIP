@@ -1,0 +1,415 @@
+import cv2
+import numpy as np
+import tkinter as tk
+from tkinter import *
+from PIL import Image, ImageTk
+from tkinter import filedialog
+
+
+img = None
+img_display = None
+label = None
+window = None
+
+
+   
+
+def load_image():
+    
+    global img, img_display, label
+    file_path = filedialog.askopenfilename(initialdir="/", title="Select Image File",
+                                           filetypes=(("Image files", (".jpg", ".jpeg", ".png", ".bmp")), ("All files", ".")))
+    if file_path:
+        img = cv2.imread(file_path)
+        img = cv2.resize(img, (400, 500))  
+        img_display = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_display = Image.fromarray(img_display)
+        img_display = ImageTk.PhotoImage(img_display)
+        label.configure(image=img_display, padx=0, pady=0,justify="right")
+        label.image = img_display
+        label.grid(columnspan=8,rowspan=5) 
+        original_button.grid(row=6, column=4, pady=10, sticky="w")
+        load_button.grid_forget()
+        
+        
+
+def apply_lpf_on_slider_change(value):
+        kernel_size = int(value)
+        apply_lpf(kernel_size)
+
+def apply_lpf(kernel_size):
+    global img
+    lpf_img = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+    display_image(lpf_img)
+
+
+def apply_hpf_on_slider_change(value):
+        kernel_size = int(value)
+        apply_hpf(kernel_size)
+def apply_hpf(kernel_size):
+    global img
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blurred_image = cv2.GaussianBlur(gray_image, (kernel_size, kernel_size), 0)
+    hpf_img = cv2.subtract(gray_image, blurred_image)
+    display_image(hpf_img)
+
+def apply_mean_on_slider_change(value):
+        kernel_size = int(value)
+        apply_mean_filter(kernel_size)
+
+def apply_mean_filter(kernel_size):
+    global img
+    filtered_img = cv2.blur(img, (kernel_size, kernel_size))
+    display_image(filtered_img)
+
+def apply_median_on_slider_change(value):
+        kernel_size = int(value)
+        apply_mean_filter(kernel_size)
+
+def apply_median_filter(kernel_size):
+    global img
+    filtered_img = cv2.medianBlur(img, kernel_size)
+    display_image(filtered_img)
+
+def display_image(image):
+    global img_display, label
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    img_display = Image.fromarray(image_rgb)
+    img_display = ImageTk.PhotoImage(img_display)
+    label.configure(image=img_display,padx=0,pady=0)
+    label.image = img_display
+
+def apply_roberts_edge_detection():
+    global img
+    roberts_image = cv2.Canny(img, 100, 200)
+    display_image(roberts_image)
+
+def apply_prewitt_edge_detection():
+    global img
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    prewitt_x = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=3)
+    prewitt_y = cv2.Sobel(gray_image, cv2.CV_64F, 0, 1, ksize=3)
+    prewitt_image = np.sqrt(prewitt_x**2 + prewitt_y**2)
+    prewitt_image = cv2.normalize(prewitt_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    display_image(prewitt_image)
+
+def apply_sobel_edge_detection():
+    global img
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    sobel_x = cv2.Sobel(gray_img, cv2.CV_64F, 1, 0, ksize=3)
+    sobel_y = cv2.Sobel(gray_img, cv2.CV_64F, 0, 1, ksize=3)
+    sobel_img = np.sqrt(sobel_x**2 + sobel_y**2).astype(np.uint8)
+    display_image(sobel_img)
+def apply_erosion_on_slider_change(value):
+        kernel_size = int(value)
+        apply_erosion(kernel_size)
+def apply_erosion(kernel_size):
+    global img
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    eroded_img = cv2.erode(img, kernel, iterations=1)
+    display_image(eroded_img)
+def apply_dilation_on_slider_change(value):
+        kernel_size = int(value)
+        apply_dilation(kernel_size)
+def apply_dilation(kernel_size):
+    global img
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    dilated_img = cv2.dilate(img, kernel, iterations=1)
+    display_image(dilated_img)
+def apply_opening_on_slider_change(value):
+        kernel_size = int(value)
+        apply_opening(kernel_size)
+def apply_opening(kernel_size):
+    global img
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    opened_img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+    display_image(opened_img)
+def apply_closing_on_slider_change(value):
+        kernel_size = int(value)
+        apply_closing(kernel_size)
+def apply_closing(kernel_size):
+    global img
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    closed_img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    display_image(closed_img)
+    
+def hough_circle():
+    global img
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    circles = cv2.HoughCircles(gray_image, cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=30, minRadius=0, maxRadius=0)
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        hough_image = img.copy()
+        for i in circles[0, :]:
+            cv2.circle(hough_image, (i[0], i[1]), i[2], (0, 255, 0), 2)  
+            cv2.circle(hough_image, (i[0], i[1]), 2, (0, 0, 255), 3)       
+            display_image(hough_image)
+    
+
+
+def apply_region_split_merge_segmentation():
+        global img
+        region_split_merge_image = img.copy()
+        height, width = region_split_merge_image.shape[:2]
+
+        def region_growing(img, seed):
+           visited = set()
+           stack = [seed]
+
+           while stack:
+             x, y = stack.pop()
+             if (x, y) not in visited:
+                 visited.add((x, y))
+             for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        if abs(int(img[y, x][0]) - int(img[ny, nx][0])) < 20:
+                            stack.append((nx, ny))
+
+             return visited
+
+
+        def merge_regions(visited_regions):
+            new_regions = []
+            for region in visited_regions:
+                merged_region = region.copy()
+                while True:
+                    for other_region in visited_regions:
+                        if other_region != region and not set(region).isdisjoint(other_region):
+                            merged_region.update(other_region)
+                            visited_regions.remove(other_region)
+                            break
+                    else:
+                        break
+                new_regions.append(merged_region)
+            return new_regions
+
+        seeds = [(0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1)]
+
+        visited_regions = []
+        for seed in seeds:
+            visited_region = region_growing(region_split_merge_image, seed)
+            visited_regions.append(visited_region)
+
+        merged_regions = merge_regions(visited_regions)
+
+        for region in merged_regions:
+            for x, y in region:
+                region_split_merge_image[y, x] = 255
+
+        display_image(region_split_merge_image)
+def apply_merge_on_slider_change(value):
+        threshold = int(value)
+        segmented_image =  apply_region_split_merge_segmentation()
+
+        display_image(segmented_image)
+
+
+def apply_seg_on_slider_change(value):
+        threshold = int(value)
+        threshold_segmentation(threshold)
+def threshold_segmentation(threshold):
+    global img
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    _, thresholded_image = cv2.threshold(gray_image, threshold, 255, cv2.THRESH_BINARY)
+    display_image(thresholded_image) 
+def update_image(value):
+    global img
+    brightness = brightness_slider.get()
+    contrast = contrast_slider.get()
+    adjusted_image = cv2.convertScaleAbs(img, alpha=contrast/50, beta=brightness-50)
+    display_image(adjusted_image)
+window = tk.Tk()
+window.title("Practical DIP")
+window.geometry("1600x800")
+window.configure(bg="beige")
+
+title_label = tk.Label(window, text="Image Processing App", font=("Consolas", 16), bg="black", fg="white", anchor="center")
+title_label.pack(fill=tk.X)
+
+icon = "ic2.png"
+window.iconphoto(True, tk.PhotoImage(file=icon))
+
+paned_window = tk.PanedWindow(window, orient=tk.HORIZONTAL)
+
+left_frame = tk.Frame(paned_window, width=1200, height=600, bg="beige")
+right_frame = tk.Frame(paned_window, width=500, height=300, bg="beige")
+separator_frame = tk.LabelFrame(paned_window, width=3, background="#2E4053",bg="black",highlightbackground="black")
+
+paned_window.add(left_frame)
+paned_window.add(separator_frame)
+paned_window.add(right_frame)
+
+label=tk.Label(right_frame, text="Image Display", width=1200, height=600, bg="beige")
+
+original_button = tk.Button(right_frame, text="Original Image", width=15, height=2, font=("Script MT Bold", 14),
+                            bg="#CCCCFF", fg="black", command=lambda: display_image(img))
+
+load_button = tk.Button(right_frame, text="Load Image", width=20, height=2, font=("Script MT Bold", 50),
+                        bg="DarkRed", fg="white", command=load_image)
+load_button.grid(padx=250,pady=220, sticky="w")
+def forg():
+    lpf_size_slider.grid_forget()
+    hpf_size_slider.grid_forget()
+    mean_size_slider.grid_forget()
+    median_size_slider.grid_forget()
+    filters.grid_forget()
+    morphi.grid_forget()
+    others.grid_forget()
+    basics.grid_forget()
+
+def morph():
+     forg()
+     backi.grid(row=1, column=0, padx=20, pady=15, sticky="w")
+     erosion_size_slider.grid(row=2, column=0, padx=20, pady=15, sticky="w")
+     dilation_size_slider.grid(row=3, column=0, padx=20,pady=15, sticky="w")
+     opening_size_slider.grid(row=4, column=0, padx=20,pady=15, sticky="w")
+     closing_size_slider.grid(row=5, column=0, padx=20, pady=15, sticky="w")
+def edge():
+     forg()
+     backi.grid(row=1, column=0, padx=20, pady=20, sticky="w")
+     sobel_button.grid(row=2, column=0, padx=20, pady=20, sticky="w")
+     robert_button.grid(row=3, column=0, padx=20, pady=20, sticky="w")
+     perwit_button.grid(row=4, column=0, padx=20, pady=20, sticky="w")
+def els():
+     forg()
+     backi.grid(row=1, column=0, padx=20, pady=20, sticky="w")
+     hough_button.grid(row=3, column=0, padx=20, pady=15, sticky="w")
+     threshold_segmentation_slider.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+def back():
+    lpf_size_slider.grid(row=1, column=0, padx=20, pady=15, sticky="w")
+    hpf_size_slider.grid(row=2, column=0, padx=20, pady=15, sticky="w")
+    mean_size_slider.grid(row=3, column=0, padx=20, pady=15, sticky="w")
+    median_size_slider.grid(row=4, column=0, padx=20, pady=15, sticky="w")
+    filters.grid(row=7, column=0, padx=20, pady=15, sticky="w")
+    morphi.grid(row=6, column=0, padx=20, pady=15, sticky="w")
+    others.grid(row=8, column=0, padx=20, pady=15, sticky="w")
+    basics.grid(row=5, column=0, padx=20, pady=10, sticky="w")
+
+    dilation_size_slider.grid_forget()
+    erosion_size_slider.grid_forget()
+    opening_size_slider.grid_forget()
+    closing_size_slider.grid_forget()
+    sobel_button.grid_forget()
+    robert_button.grid_forget()
+    perwit_button.grid_forget()
+    hough_button.grid_forget()
+    threshold_segmentation_slider.grid_forget()
+    backi.grid_forget()
+    brightness_slider.grid_forget()
+    contrast_slider.grid_forget()
+def basicsi():
+     forg()
+     backi.grid(row=1, column=0, padx=20, pady=20, sticky="w")
+     brightness_slider.grid(row=3, column=0, padx=20, pady=15, sticky="w")
+     contrast_slider.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+
+
+
+lpf_size_slider = tk.Scale(left_frame, from_=1, to=20,resolution=2, orient=HORIZONTAL, label="Low Pass filter", background="Teal", fg="white",
+                         length=200,command=apply_lpf_on_slider_change)
+lpf_size_slider.set(1)
+lpf_size_slider.grid(row=1, column=0, padx=20, pady=15, sticky="w")
+lpf_size_slider.config(command=apply_lpf_on_slider_change)
+
+
+hpf_size_slider = tk.Scale(left_frame, from_=1, to=20, orient=HORIZONTAL,resolution=2, label="High Pass filter", background="Teal", fg="white",
+                         length=200,command=apply_hpf_on_slider_change)
+hpf_size_slider.set(1)  
+hpf_size_slider.grid(row=2, column=0, padx=20, pady=15, sticky="w")
+hpf_size_slider.config(command=apply_hpf_on_slider_change)
+
+
+
+mean_size_slider = tk.Scale(left_frame, from_=1, to=20, orient=HORIZONTAL, label="Mean filter", background="Teal", fg="white",
+                          length=200,command=apply_mean_on_slider_change)
+mean_size_slider.set(1)  
+mean_size_slider.grid(row=3, column=0, padx=20, pady=15, sticky="w")
+mean_size_slider.config(command=apply_mean_on_slider_change)
+
+
+
+median_size_slider = tk.Scale(left_frame, from_=3,resolution=2, to=21, showvalue=True, orient=HORIZONTAL, label="Median filter", background="Teal",
+                           fg="white", length=200,command=apply_median_on_slider_change)
+median_size_slider.set(3)  
+median_size_slider.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+median_size_slider.config(command=apply_median_on_slider_change)
+
+morphi = tk.Button(left_frame, text="Morphlogical\n filters", width=13, height=1, font=("Lucida Handwriting", 15),
+bg="Maroon", fg="white",command=morph)
+morphi.grid(row=6, column=0, padx=20, pady=10, sticky="w")
+
+basics = tk.Button(left_frame, text="Basics", width=13, height=1, font=("Lucida Handwriting", 15),
+bg="Maroon", fg="white",command=basicsi)
+basics.grid(row=5, column=0, padx=20, pady=10, sticky="w")
+
+filters = tk.Button(left_frame, text="Edge detectors", width=13, height=1, font=("Lucida Handwriting", 15),
+bg="Maroon", fg="white",command=edge)
+filters.grid(row=7, column=0, padx=20, pady=10, sticky="w")
+
+others = tk.Button(left_frame, text="Others", width=13, height=1, font=("Lucida Handwriting", 15),
+bg="Maroon", fg="white",command=els)
+others.grid(row=8, column=0, padx=20, pady=10, sticky="w")
+#morphological filters
+backi = tk.Button(left_frame, text="Go back", width=10, height=1, font=("Lucida Handwriting", 16), bg="black", fg="white", command=back)
+
+erosion_size_slider = tk.Scale(left_frame, from_=1, to=20, orient=tk.HORIZONTAL, label="Erosion",
+background="Teal", foreground="white", length=200)
+erosion_size_slider.set(1)
+
+erosion_size_slider.config(command=apply_erosion_on_slider_change)
+
+
+
+dilation_size_slider = tk.Scale(left_frame, from_=1, to=20, orient=tk.HORIZONTAL, label="Dilation",
+background="Teal", fg="white", length=200)
+dilation_size_slider.set(1)
+dilation_size_slider.config(command=apply_dilation_on_slider_change)
+
+opening_size_slider = tk.Scale(left_frame, from_=1, to=20, orient=tk.HORIZONTAL, label="Opening",
+background="Teal", fg="white", length=200)
+opening_size_slider.set(1)
+opening_size_slider.config(command=apply_opening_on_slider_change)
+
+
+
+closing_size_slider = tk.Scale(left_frame, from_=1, to=20, orient=tk.HORIZONTAL, label="Closing",
+background="Teal", fg="white", length=200)
+closing_size_slider.set(1)
+closing_size_slider.config(command=apply_closing_on_slider_change)
+# edge detectors
+
+
+sobel_button = tk.Button(left_frame, text="Apply Sobel", width=20, height=2, font=("Tahoma", 15), bg="Teal", fg="white",
+                          command=apply_sobel_edge_detection)
+
+
+robert_button = tk.Button(left_frame, text="Apply Robert", width=20, height=2, font=("Tahoma", 15), bg="Teal", fg="white",
+                           command=apply_roberts_edge_detection)
+
+perwit_button = tk.Button(left_frame, text="Apply Perwit", width=20, height=2, font=("Tahoma", 15), bg="Teal", fg="white",
+                          command=apply_prewitt_edge_detection)
+# others
+hough_button = tk.Button(left_frame, text="Apply Hough", width=15, height=2, font=("Tahoma", 14),
+bg="Teal", fg="white",command=hough_circle)
+
+
+threshold_segmentation_slider = tk.Scale(left_frame, from_=1, to=255, orient=HORIZONTAL, label="Apply segmentation",
+                            background="Teal", fg="white", length=200,command=apply_seg_on_slider_change)
+threshold_segmentation_slider.set(1)
+threshold_segmentation_slider.config(command=apply_seg_on_slider_change)
+# basics 
+brightness_slider = tk.Scale(left_frame, from_=0, to=100, orient=HORIZONTAL, label="Brightness",
+                            background="Teal", fg="white", length=200,command=update_image)
+brightness_slider.set(50)
+brightness_slider.config(command=update_image)
+contrast_slider = tk.Scale(left_frame, from_=0, to=100, orient=HORIZONTAL, label="Contrast",
+                            background="Teal", fg="white", length=200,command=update_image)
+contrast_slider.set(50)
+contrast_slider.config(command=update_image)
+
+
+paned_window.pack(fill=tk.BOTH, expand=True)
+window.mainloop()
